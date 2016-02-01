@@ -2408,7 +2408,7 @@ static char *hidden_name(struct fuse *f, fuse_ino_t dir, const char *oldname,
 }
 
 static int hide_node(struct fuse *f, const char *oldpath,
-		     fuse_ino_t dir, const char *oldname)
+		     fuse_ino_t dir, const char *oldname, const int keep)
 {
 	char newname[64];
 	char *newpath;
@@ -2416,7 +2416,10 @@ static int hide_node(struct fuse *f, const char *oldpath,
 
 	newpath = hidden_name(f, dir, oldname, newname, sizeof(newname));
 	if (newpath) {
-		err = fuse_fs_rename(f->fs, oldpath, newpath);
+		if (keep)
+			err = fuse_fs_link(f->fs, oldpath, newpath);
+		else
+			err = fuse_fs_rename(f->fs, oldpath, newpath);
 		if (!err)
 			err = rename_node(f, dir, oldname, dir, newname, 1);
 		free(newpath);
@@ -2965,7 +2968,7 @@ static void fuse_lib_unlink(fuse_req_t req, fuse_ino_t parent,
 
 		fuse_prepare_interrupt(f, req, &d);
 		if (!f->conf.hard_remove && is_open(f, parent, name)) {
-			err = hide_node(f, path, parent, name);
+			err = hide_node(f, path, parent, name, 0);
 		} else {
 			err = fuse_fs_unlink(f->fs, path);
 			if (!err)
@@ -3038,7 +3041,7 @@ static void fuse_lib_rename(fuse_req_t req, fuse_ino_t olddir,
 		err = 0;
 		fuse_prepare_interrupt(f, req, &d);
 		if (!f->conf.hard_remove && is_open(f, newdir, newname))
-			err = hide_node(f, newpath, newdir, newname);
+			err = hide_node(f, newpath, newdir, newname, 1);
 		if (!err) {
 			err = fuse_fs_rename(f->fs, oldpath, newpath);
 			if (!err)
