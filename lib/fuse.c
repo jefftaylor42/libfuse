@@ -39,7 +39,9 @@
 #include <sys/mman.h>
 #include <sys/file.h>
 
+#ifndef FUSE_NODE_SLAB
 #define FUSE_NODE_SLAB 1
+#endif
 
 #ifndef MAP_ANONYMOUS
 #undef FUSE_NODE_SLAB
@@ -378,7 +380,7 @@ static size_t get_node_size(struct fuse *f)
 		return sizeof(struct node);
 }
 
-#ifdef FUSE_NODE_SLAB
+#if FUSE_NODE_SLAB
 static struct node_slab *list_to_slab(struct list_head *head)
 {
 	return (struct node_slab *) head;
@@ -470,7 +472,7 @@ static void free_node_mem(struct fuse *f, struct node *node)
 		free_slab(f, slab);
 	}
 }
-#else
+#else /* !FUSE_NODE_SLAB */
 static struct node *alloc_node(struct fuse *f)
 {
 	return (struct node *) calloc(1, get_node_size(f));
@@ -481,7 +483,7 @@ static void free_node_mem(struct fuse *f, struct node *node)
 	(void) f;
 	free(node);
 }
-#endif
+#endif /* FUSE_NODE_SLAB */
 
 static size_t id_hash(struct fuse *f, fuse_ino_t ino)
 {
@@ -2800,7 +2802,7 @@ static void fuse_lib_setattr(fuse_req_t req, fuse_ino_t ino, struct stat *attr,
 				err = fuse_fs_truncate(f->fs, path,
 						       attr->st_size);
 		}
-#ifdef HAVE_UTIMENSAT
+#if HAVE_UTIMENSAT
 		if (!err && f->utime_omit_ok &&
 		    (valid & (FUSE_SET_ATTR_ATIME | FUSE_SET_ATTR_MTIME))) {
 			struct timespec tv[2];
@@ -2822,7 +2824,7 @@ static void fuse_lib_setattr(fuse_req_t req, fuse_ino_t ino, struct stat *attr,
 
 			err = fuse_fs_utimens(f->fs, path, tv);
 		} else
-#endif
+#endif /* HAVE_UTIMENSAT */
 		if (!err &&
 		    (valid & (FUSE_SET_ATTR_ATIME | FUSE_SET_ATTR_MTIME)) ==
 		    (FUSE_SET_ATTR_ATIME | FUSE_SET_ATTR_MTIME)) {
