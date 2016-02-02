@@ -1331,7 +1331,12 @@ static void unlink_node(struct fuse *f, struct node *node)
 		assert(node->nlookup > 1);
 		node->nlookup--;
 	}
-	unhash_name(f, node);
+	/* XXX: unhashing here sometimes results in a race condition where we
+	* delete a node that has been queued, causing it to no longer exist when we
+	* unqueue it.  Failing to unhash probably results in a leak, but this is
+	* less severe than missing files (and it is not the biggest leak here).
+	*/
+	//unhash_name(f, node);
 }
 
 static void remove_node(struct fuse *f, fuse_ino_t dir, const char *name)
