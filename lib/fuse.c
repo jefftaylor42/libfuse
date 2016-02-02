@@ -2425,8 +2425,10 @@ static int hide_node(struct fuse *f, const char *oldpath,
 	if (newpath) {
 		if (keep)
 			err = fuse_fs_link(f->fs, oldpath, newpath);
-		else
+
+		if (!keep || err == -ENOSYS)
 			err = fuse_fs_rename(f->fs, oldpath, newpath);
+
 		if (!err)
 			err = rename_node(f, dir, oldname, dir, newname, 1);
 		free(newpath);
